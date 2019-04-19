@@ -76,8 +76,13 @@ public class RecognitionApp extends JApplet
 		features[ 0 ] = new FeatureLeftLinerity();
 
 		// 利用可能な閾値決定モジュール（１次元の特徴量）を初期化
-		thresholds = new ThresholdDeterminer[ 1 ];
+//		thresholds = new ThresholdDeterminer[ 1 ];
+//		thresholds[ 0 ] = new ThresholdByAverage();
+		thresholds = new ThresholdDeterminer[ 4 ];
 		thresholds[ 0 ] = new ThresholdByAverage();
+		thresholds[ 1 ] = new ThresholdByProbability();
+		thresholds[ 2 ] = new ThresholdByCumulative();
+		thresholds[ 3 ] = new ThresholdByMinimization();
 
 		// 文字画像判別モジュールの生成
 		recognizer = new CharacterRecognizer();
@@ -88,7 +93,8 @@ public class RecognitionApp extends JApplet
 		graph_viewr = new GraphViewer();
 
 		// 開始時の実行モードの設定
-		mode = FEATURE_MODE;
+//		mode = FEATURE_MODE;
+		mode = RECOGNITION_MODE;
 
 
 		// 全サンプル画像の読み込み
