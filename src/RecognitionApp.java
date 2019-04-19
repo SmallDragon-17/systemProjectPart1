@@ -114,10 +114,43 @@ public class RecognitionApp extends JApplet
 	//  メイン処理
 	//
 
+//	// サンプル画像を使った文字画像認識のテスト
+//	public void  recognitionTest()
+//	{
+//		// 要実装
+//	}
+
 	// サンプル画像を使った文字画像認識のテスト
 	public void  recognitionTest()
 	{
-		// 要実装
+		// 全てのサンプル画像を使って学習
+		recognizer.train( sample_images0, sample_images1 );
+			// 全てのサンプル画像を使って誤認識率を計算
+		int  error_count[] = { 0, 0 };
+		int  char_no;
+		error_count[ 0 ] = 0;
+		error_count[ 1 ] = 0;
+		for ( int i=0; i<sample_images0.length; i++ )
+		{
+			char_no = recognizer.recognizeCharacter( sample_images0[ i ] );
+			if ( char_no != 0 )
+				error_count[ 0 ] ++;
+		}
+		for ( int i=0; i<sample_images1.length; i++ )
+		{
+			char_no = recognizer.recognizeCharacter( sample_images1[ i ] );
+			if ( char_no != 1 )
+				error_count[ 1 ] ++;
+		}
+		error0 = (float) error_count[ 0 ] / sample_images0.length;
+		error1 = (float) error_count[ 1 ] / sample_images1.length;
+		error = (float) ( error_count[ 0 ] + error_count[ 1 ] ) / (float) ( sample_images0.length + sample_images1.length );
+
+		// 特徴空間・閾値などをグラフに設定
+		recognizer.drawGraph( graph_viewr );
+
+		// 画面の再描画
+		repaint();
 	}
 
 
