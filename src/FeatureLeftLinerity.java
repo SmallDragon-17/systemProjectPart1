@@ -13,6 +13,8 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 	protected float  left_length;
 	protected float  char_height;
 
+	int a = 0;
+
 	protected int left_x[];
 	protected int left_y_start;
 	protected int left_y_end;
@@ -37,6 +39,7 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 	// 文字画像から１次元の特徴量を計算する
 	public float  evaluate( BufferedImage image )
 	{
+		a++;
 		int  height = image.getHeight();
 		int  width = image.getWidth();
 
@@ -80,6 +83,7 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		//文字の高さ = 黒い線の終わり - 黒い線の始まり
 		char_height = end - start;
 
+
 /* 5-4ver.の始まり*/
 		//ギャップのある区間の分割
 		left_y_list = new ArrayList<>();
@@ -90,7 +94,7 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		for (int i = start; i < end; i++) {
 			//ひとつ後ろのy座標の線とのx座標の差が15より大きかったら
 			//ギャップがあるとみなす
-			if (leftCheck(i)) {
+			if (Math.abs(left_x[i+1] - left_x[i]) > 15) {
 				left_y_tmp[1] = i;
 
 				//とりあえず分けた区間はすべてリストleft_y_listに格納する
@@ -102,7 +106,7 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		left_y_tmp[1] = end;
 		left_y_list.add(left_y_tmp);
 
-		//最も長い区間かどうか判定し、長かったらleft_y_mainに格納する
+/*		//最も長い区間かどうか判定し、長かったらleft_y_mainに格納する
 		//main_len: 左の線の最も長い区間の長さ
 		//main_num: リストleft_y_listにおいて
 		//左の線の最も区間の長い配列が入っているインデックスを探す
@@ -131,6 +135,16 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 					Math.pow(Math.abs(left_x[i]-left_x[i+1]), 2) + 1
 					);
 		}
+*/
+		//分けた左の線の長さをそれぞれ足し合わせていく
+		left_length = 0;
+		int leflist_size = left_y_list.size();
+		for (int i = 0; i < leflist_size; i++) {
+			int array[] = left_y_list.get(i);
+
+			longline_sum(array[0], array[1]);
+		}
+
 /* 5-4ver.の終わり*/
 
 
@@ -233,10 +247,11 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		g.drawString( message, ox, oy + 48 );
 	}
 
-	public boolean leftCheck(int i) {
+	// 今は使用していない。
+	private boolean leftCheck(int i) {
 		/*左の線がかけているかいないかチェックするメソッド
-		 * @param i: 線がかけ始めていると思われるleft_xのインデックス
-		 * @return: 線がかけていると判断したらtrue
+		 *@param i: 線がかけ始めていると思われるleft_xのインデックス
+		 *@return: 線がかけていると判断したらtrue
 		 */
 		boolean res = false;
 		if (Math.abs(left_x[i+1] - left_x[i]) > 15) {
@@ -254,5 +269,23 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		}
 
 		return res;
+	}
+
+
+	private void longline_sum(int start, int end) {
+		/*線の長さを計算するメソッド
+		*/
+		//線ではなく、点となっている場合
+		if (start == end) {
+			left_length += 1;
+		}
+		//線となっているとき
+		else {
+			for (int i = start; i < end; i++) {
+				left_length += Math.sqrt(
+					Math.pow(Math.abs(left_x[i]-left_x[i+1]), 2) + 1
+					);
+			}
+		}
 	}
 }
