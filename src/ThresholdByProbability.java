@@ -36,6 +36,8 @@ class  ThresholdByProbability extends ThresholdByAverage
 		// 最終的な閾値とする
 		float  new_threshold;
 		float  min_new_threshold = histogram_min_f; // 初期値として適当な値を入れておく
+		int cnt = 0;
+		Map<String, Float> crossPoint = new HashMap<String, Float>();
 		for ( int seg_no=0; seg_no<histogram0.length-1; seg_no++ )
 		{
 			// 区間の右端・左端の特徴量の値を計算する
@@ -64,7 +66,6 @@ class  ThresholdByProbability extends ThresholdByAverage
 			pt.put("lineLX", feature_left);
 			pt.put("lineRX", feature_right);
 
-			Map<String, Float> crossPoint = new HashMap<String, Float>();
 			// 右端・左端で出現確率の高いグループが異なっている、
 			// もしくはどちらかで出現確率が等しければ、
 			// その区間で必ず出現確率が等しい点が存在する
@@ -76,14 +77,18 @@ class  ThresholdByProbability extends ThresholdByAverage
 				pt.put("point1RY", prob0_right);
 				// Line 2
 				pt.put("point2LY", prob1_left);
-				pt.put("point2LY", prob1_right);
+				pt.put("point2RY", prob1_right);
 
 				// 交点を計算
-				crossPoint = calcIntersectionPoint(pt);
+				crossPoint = calcIntersectionPoint(pt, cnt);
 
 				// 区間内の出現確率が等しい点を計算する
 				// 要実装
-				threshold = crossPoint.get("x");
+
+				// Exist 2 point
+
+//				threshold = crossPoint.get("x");
+				cnt = cnt + 1;
 			}
 			else if ( prob1_left > prob0_left && prob0_right > prob1_right ) {
 				// Line 1
@@ -91,31 +96,45 @@ class  ThresholdByProbability extends ThresholdByAverage
 				pt.put("point1RY", prob1_right);
 				// Line 2
 				pt.put("point2LY", prob0_left);
-				pt.put("point2LY", prob0_right);
+				pt.put("point2RY", prob0_right);
 
 				// 区間内の出現確率が等しい点を計算する
 				// 要実装
 
-				crossPoint = calcIntersectionPoint(pt);
+				crossPoint = calcIntersectionPoint(pt, cnt);
 
-				threshold = crossPoint.get("x");
+//				threshold = crossPoint.get("x");
 
 			}
 		}
 
+		float numbers[] = new float[cnt];
+		float calcThreshold = 0;
+		if (cnt > 1) {
+			calcThreshold = threshold - crossPoint.get("x" + 0);
+			for (int i = 1; i < cnt; i++) {
+				if (threshold - crossPoint.get("x" + i) < calcThreshold){
+					calcThreshold = threshold - crossPoint.get("x" + i);
+				}
+//				numbers[i] = threshold - crossPoint.get("x" + i);
+			}
+
+		}
+		min_new_threshold = calcThreshold;
 		// 新しい閾値を設定
 		threshold = min_new_threshold;
 	}
 
-	public Map<String, Float> calcIntersectionPoint( Map<String, Float> pt) {
-		float s1 = ((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point2LY") - pt.get("point2RY")) - (pt.get("point1LY") - pt.get("point1RY")) * (pt.get("lineLX") - pt.get("lineRX"))) / 2;
+	public Map<String, Float> calcIntersectionPoint( Map<String, Float> pt, int cnt) {
+		System.out.println(pt);
+		float s1 = ((((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point2LY") - pt.get("point2RY"))) - ((pt.get("point1LY") - pt.get("point1RY")) * (pt.get("lineLX") - pt.get("lineRX")))) / 2);
 		float s2 = ((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point1RY") - pt.get("point2RY"))) / 2;
 		float area = s1 + s2;
 		float x = (pt.get("lineLX") + (pt.get("lineRX") - pt.get("lineLX")) * s1 ) / area;
 		float y = (pt.get("lineLX") + (pt.get("point2RY") - pt.get("point2LY")) * s1 ) / area;
 		Map<String, Float> crossPoint = new HashMap<String, Float>();
-		crossPoint.put("x", x);
-		crossPoint.put("y", y);
+		crossPoint.put("x" + cnt, x);
+		crossPoint.put("y" + cnt, y);
 		return crossPoint;
 
 	}
