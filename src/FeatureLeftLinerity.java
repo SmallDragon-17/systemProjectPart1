@@ -1,6 +1,8 @@
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
 //
 //	文字画像の左辺の直線度を特徴量として計算するクラス
@@ -15,12 +17,12 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 	protected int left_y_start;
 	protected int left_y_end;
 
-/*  5-4においては追加で必要
+/*  5-4においては追加で必要 */
 	//それぞれの左の線の始まりのy座標と終わりのy座標を格納する
 	protected List<int[]> left_y_list;
 	//左の線の最も長い区間として使用するリストleft_y_listnのインデックス
 	protected int main_num;
-*/
+/*5-4で必要になるのここまで*/
 
 	// 最後に特徴量計算を行った画像（描画用）
 	protected BufferedImage  last_image;
@@ -78,7 +80,7 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		//文字の高さ = 黒い線の終わり - 黒い線の始まり
 		char_height = end - start;
 
-/* 5-4ver.の内容
+/* 5-4ver.の始まり*/
 		//ギャップのある区間の分割
 		left_y_list = new ArrayList<>();
 
@@ -88,7 +90,7 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		for (int i = start; i < end; i++) {
 			//ひとつ後ろのy座標の線とのx座標の差が15より大きかったら
 			//ギャップがあるとみなす
-			if (Math.abs(left_x[i+1] - left_x[i]) > 15) {
+			if (leftCheck(i)) {
 				left_y_tmp[1] = i;
 
 				//とりあえず分けた区間はすべてリストleft_y_listに格納する
@@ -129,17 +131,20 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 					Math.pow(Math.abs(left_x[i]-left_x[i+1]), 2) + 1
 					);
 		}
-*/
+/* 5-4ver.の終わり*/
 
 
-//  5-3ver.の始まり
+/*//  5-3ver.の始まり
 		left_length = 0;
 		for (int i = start; i < end; i++) {
-			left_length += Math.sqrt(
-					Math.pow(Math.abs(left_x[i]-left_x[i+1]), 2) + 1
-					);
+			//線が途切れているところは長さを計測しないようにする
+			if (left_x[i] != -1 && left_x[i+1] != -1) {
+				left_length += Math.sqrt(
+						Math.pow(Math.abs(left_x[i]-left_x[i+1]), 2) + 1
+						);
+			}
 		}
-//  5-3ver.の終わり
+//  5-3ver.の終わり*/
 
 		// 文字の高さ / 左側の辺の長さ の比を計算
 		float  left_linearity;
@@ -160,7 +165,7 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 		int  ox = 0, oy = 0;
 		g.drawImage( last_image, ox, oy, null );
 
-//  5-3ver.の始まり
+/*//  5-3ver.の始まり
 		int  x0, y0, x1, y1;
 		for ( int y=0; y<left_x.length-1; y++ )
 		{
@@ -175,9 +180,9 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 				g.drawLine( ox + x0, oy + y0, ox + x1, oy + y1 );
 			}
 		}
-//  5-3ver.の終わり
+//  5-3ver.の終わり*/
 
-/*  5-4の内容
+/*  5-4ver.の始まり*/
 		int  x0, y0, x1, y1;
 		int y_start[] = new int[left_y_list.size()];
 		int y_end[] = new int[left_y_list.size()];;
@@ -210,9 +215,14 @@ class  FeatureLeftLinerity implements FeatureEvaluater
 				g.drawLine( ox + x0, oy + y0, ox + x1, oy + y1 );
 			}
 		}
-*/
+/*5-4ver.の終わり*/
+
 
 		// 高さの線の描画
+		g.setColor(Color.GREEN);
+		g.drawLine(0, left_y_start, last_image.getWidth(), left_y_start);
+		g.drawLine(0, left_y_end, last_image.getWidth(), left_y_end);
+
 		String  message;
 		g.setColor( Color.RED );
 		message = "左辺の長さ: " + left_length;
