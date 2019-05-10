@@ -6,14 +6,14 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 	// 分散共分散行列
 	protected float  C0xx, C0xy, C0yy;
 	protected float  C1xx, C1xy, C1yy;
-	
+
 	// 分散共分散の逆行列
 	protected float  S0xx, S0xy, S0yy;
 	protected float  S1xx, S1xy, S1yy;
 
-	// 前回計算した閾値の値（解が２つ出るので両方の値を記録）	
+	// 前回計算した閾値の値（解が２つ出るので両方の値を記録）
 	protected float  last_y0, last_y1;
-	
+
 
 	// 閾値の決定方法の名前を返す
 	public String  getThresholdName()
@@ -26,7 +26,7 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 	{
 		// 基底クラスの処理を実行（特徴量の平均値の計算）
 		super.determine( features0, features1 );
-		
+
 		// 特徴量の分散共分散を計算
 		C0xx = C0xy = C0yy = 0.0f;
 		for ( int i=0; i<features0.length; i++ )
@@ -37,10 +37,10 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 			C0yy += dy * dy;
 			C0xy += dx * dy;
 		}
-		C0xx = C0xx / features0.length; 
-		C0yy = C0yy / features0.length; 
-		C0xy = C0xy / features0.length; 
-		
+		C0xx = C0xx / features0.length;
+		C0yy = C0yy / features0.length;
+		C0xy = C0xy / features0.length;
+
 		C1xx = C1xy = C1yy = 0.0f;
 		for ( int i=0; i<features1.length; i++ )
 		{
@@ -50,10 +50,10 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 			C1yy += dy * dy;
 			C1xy += dx * dy;
 		}
-		C1xx = C1xx / features1.length; 
-		C1yy = C1yy / features1.length; 
-		C1xy = C1xy / features1.length; 
-		
+		C1xx = C1xx / features1.length;
+		C1yy = C1yy / features1.length;
+		C1xy = C1xy / features1.length;
+
 		// 分散共分散の逆行列を計算
 		float  det;
 		det = C0xx * C0yy - C0xy * C0xy;
@@ -83,7 +83,7 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 		else
 			return  1;
 	}
-	
+
 	// 閾値を返す（特徴量Xの値が与えられたときの特徴量Yの値の閾値を返す）
 	public float  getThreshold( float x )
 	{
@@ -100,7 +100,7 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 		b = 2 * ( - dx0 * S0xy - m0y * S0yy - dx1 * S1xy + m1y * S1yy );
 		c = ( -L0 + L1 + dx0 * dx0 * S0xx + 2.0f * dx0 * m0y * S0xy + m0y * m0y * S0yy
 		               - dx1 * dx1 * S1xx - 2.0f * dx1 * m1y * S1xy - m1y * m1y * S1yy );
-		
+
 		// 実数解を持つかどうかを判定（２次方程式の解の公式のルート内が正になるかを判定）
 		float  root = b * b - 4.0f * a * c;
 		if ( root < 0.0f )
@@ -110,23 +110,23 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 			return  Float.NaN; // 非数（無効な実数）を返す
 		}
 		root = (float) java.lang.Math.sqrt( root );
-		
+
 		// ２次方程式の解を計算
 		float  y = 0.0f, y0, y1;
 		y0 = ( - b + root ) / ( 2.0f * a );
 		y1 = ( - b - root ) / ( 2.0f * a );
 		last_y0 = y0;
 		last_y1 = y1;
-		
+
 		// ２つの解のうち近い方を仮に返す
-		if ( ( ( y0 - m0y ) * ( y0 - m0y ) + ( y0 - m1y ) * ( y0 - m1y ) ) < 
+		if ( ( ( y0 - m0y ) * ( y0 - m0y ) + ( y0 - m1y ) * ( y0 - m1y ) ) <
 		     ( ( y1 - m0y ) * ( y1 - m0y ) + ( y1 - m1y ) * ( y1 - m1y ) ) )
 			y = y0;
 		else
 			y = y1;
 		return  y;
 	}
-	
+
 	// 特徴空間のデータをグラフに描画（グラフオブジェクトに図形データを設定）
 	public void  drawGraph( GraphViewer gv )
 	{
@@ -141,7 +141,7 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 	//
 	//  特徴空間描画のための内部メソッド
 	//
-	
+
 	// 境界曲線を描画
 	protected void  drawBorderCurve( GraphViewer gv )
 	{
@@ -175,7 +175,7 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 			else if ( max_y < fy )
 				max_y = fy;
 		}
-		
+
 		// いくつかの点の座標を記録（範囲内でXを変化させながら上側のYと下側のYをそれぞれ記録）
 		int  num_points = 80;
 		GraphPoint  upper_points[];
@@ -189,7 +189,7 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 		{
 			x = ( max_x - min_x ) * i / ( num_points - 1 ) + min_x;
 			y = getThreshold( x );
-			
+
 			if ( ! Float.isNaN( last_y0 ) )
 			{
 				upper_points[ upper_count ] = new GraphPoint();
@@ -205,7 +205,7 @@ class  Threshold2DByGaussian3 extends Threshold2DByGaussian1
 				lower_count ++;
 			}
 		}
-		
+
 		// 取得した点をつなげて折れ線として曲線を描画
 		if ( Float.isNaN( getThreshold( min_x ) ) )
 		{

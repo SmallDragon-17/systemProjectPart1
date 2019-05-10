@@ -9,19 +9,19 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 	// 特徴量の平均値
 	protected float  mean0x, mean0y;
 	protected float  mean1x, mean1y;
-	
+
 	// 閾値（境界）の方程式
 	protected float  border_ox, border_oy; // 境界線の中心点
 	protected float  border_dy; // 境界線の傾き
 
 	// 閾値の符号（グループ0の方が特徴量が閾値よりも小さければ真）
 	protected boolean  is_first_smaller;
-	
+
 	// 特徴量データ（グラフ描画用）
 	protected float  features0[][];
 	protected float  features1[][];
-	
-	
+
+
 	// 閾値の決定方法の名前を返す
 	public String  getThresholdName()
 	{
@@ -31,35 +31,51 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 	// 両グループの特徴量から閾値を決定
 	public void  determine( float[][] features0, float[][] features1 )
 	{
-		// 特徴量の平均値（mean0x, mean0y, mean1x, mean1y）を計算
-		// 要実装
-		// mean0x には、グループ0の1つ目の特徴量の平均値を代入
-		// （features0[ 0 ][ 0 ] ～ features0[ features0.length()-1 ][ 0 ] の平均）
-		// mean0x には、グループ0の2つ目の特徴量の平均値を代入
-		// （features0[ 0 ][ 1 ] ～ features0[ features0.length()-1 ][ 1 ] の平均）
-		// mean1x, mean1y には、同じく、グループ1の2つの特徴量の平均値をそれぞれ代入
-		
-		// 境界の方程式を計算（２つの平均値からの距離が等しくなる直線を境界とする）
-		// border_ox, border_oy, border_dy を求める
-		// 要実装
-		// border_ox, border_oy には各グループの平均値の中央点を代入
-		// border_dy には、境界線の傾きを代入
-		
-		// 境界の符号を判定（グループ0が特徴量が境界よりも下にあれば is_first_smaller を真にする）
-		// 要実装
-		
-		// 特徴量データを記録（グラフ描画用）
-		this.features0 = features0;
-		this.features1 = features1;
+		// 特徴量の平均値を計算
+				int  i;
+				mean0x = 0.0f;
+				mean0y = 0.0f;
+				for ( i=0; i<features0.length; i++ )
+				{
+					mean0x += features0[ i ][ 0 ];
+					mean0y += features0[ i ][ 1 ];
+				}
+				mean0x = mean0x / features0.length;
+				mean0y = mean0y / features0.length;
+
+				mean1x = 0.0f;
+				mean1y = 0.0f;
+				for ( i=0; i<features1.length; i++ )
+				{
+					mean1x += features1[ i ][ 0 ];
+					mean1y += features1[ i ][ 1 ];
+				}
+				mean1x = mean1x / features1.length;
+				mean1y = mean1y / features1.length;
+
+				// 境界の方程式を計算（２つの平均値からの距離が等しくなる直線を境界とする）
+				border_ox = ( mean0x + mean1x ) * 0.5f;
+				border_oy = ( mean0y + mean1y ) * 0.5f;
+				border_dy = - ( mean1x - mean0x ) / ( mean1y - mean0y );
+
+				// 境界の符号を判定（グループ0が特徴量が境界よりも下にあれば真）
+				if ( mean0y < getThreshold( mean0x ) )
+					is_first_smaller = true;
+				else
+					is_first_smaller = false;
+
+				// 特徴量データを記録（グラフ描画用）
+				this.features0 = features0;
+				this.features1 = features1;
 	}
-	
+
 	// 閾値をもとに特徴量から文字を判定する
 	public int  recognize( float[] feature )
 	{
 		// グループ0の特徴量y < 閾値y < グループ1の特徴量y
 		if ( is_first_smaller )
 		{
-			if ( feature[ 1 ] < getThreshold( feature[ 0 ] ) ) 
+			if ( feature[ 1 ] < getThreshold( feature[ 0 ] ) )
 				return  0;
 			else
 				return  1;
@@ -67,13 +83,13 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 		// グループ1の特徴量y < 閾値 < グループ0の特徴量y
 		else
 		{
-			if ( feature[ 1 ] < getThreshold( feature[ 0 ] ) ) 
+			if ( feature[ 1 ] < getThreshold( feature[ 0 ] ) )
 				return  1;
 			else
 				return  0;
 		}
 	}
-	
+
 	// 閾値を返す
 	public float  getThreshold( float x )
 	{
@@ -81,7 +97,7 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 		y = ( x - border_ox ) * border_dy + border_oy;
 		return  y;
 	}
-	
+
 	// 特徴空間のデータをグラフに描画（グラフオブジェクトに図形データを設定）
 	public void  drawGraph( GraphViewer gv )
 	{
@@ -96,7 +112,7 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 	//
 	//  特徴空間描画のための内部メソッド
 	//
-	
+
 	// 境界線を描画
 	protected void  drawBorderLine( GraphViewer gv )
 	{
@@ -130,7 +146,7 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 			else if ( max_y < fy )
 				max_y = fy;
 		}
-		
+
 		// 直線の両端点を結ぶ線分を計算
 		float  x0, y0, x1, y1;
 		x0 = min_x;
@@ -153,7 +169,7 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 				y1 = max_y;
 			x1 = ( y1 - border_oy ) / border_dy + border_ox;
 		}
-		
+
 		// 線分を描画
 		GraphPoint  data[];
 		data = new GraphPoint[ 2 ];
@@ -165,7 +181,7 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 		data[ 1 ].y = y1;
 		gv.addFigure( GraphViewer.FIG_LINE, Color.BLACK, data );
 	}
-	
+
 	// データ分布を散布図で描画
 	protected void  drawScatteredGraph( GraphViewer gv )
 	{
@@ -176,13 +192,13 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 		data[ 0 ].x = mean0x;
 		data[ 0 ].y = mean0y;
 		gv.addFigure( GraphViewer.FIG_SCATTERED, new Color( 1.0f, 0.5f, 0.5f ), data, 6.0f );
-				
+
 		data = new GraphPoint[ 1 ];
 		data[ 0 ] = new GraphPoint();
 		data[ 0 ].x = mean1x;
 		data[ 0 ].y = mean1y;
 		gv.addFigure( GraphViewer.FIG_SCATTERED, new Color( 0.5f, 0.5f, 1.0f ), data, 6.0f );
-		
+
 		// 各データを散布図で描画
 		data = new GraphPoint[ features0.length ];
 		for ( int i=0; i<features0.length; i++ )
@@ -192,7 +208,7 @@ class  Threshold2DByGaussian1 implements ThresholdDeterminer2D
 			data[ i ].y = features0[ i ][ 1 ];
 		}
 		gv.addFigure( GraphViewer.FIG_SCATTERED, Color.RED, data );
-		
+
 		data = new GraphPoint[ features1.length ];
 		for ( int i=0; i<features1.length; i++ )
 		{
