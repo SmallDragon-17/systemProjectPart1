@@ -34,7 +34,7 @@ import javax.swing.JRadioButton;
 public class RecognitionApp extends JApplet
 {
 	// 文字画像認識モジュール
-	protected CharacterRecognizer  recognizer;
+	protected CharacterRecognizer2D  recognizer;
 
 	// 利用可能な特徴量計算モジュール
 	protected FeatureEvaluater   features[];
@@ -42,16 +42,32 @@ public class RecognitionApp extends JApplet
 	// 利用可能な閾値決定モジュール（１次元の特徴量）
 	protected ThresholdDeterminer  thresholds[];
 
+	// 利用可能な閾値決定モジュール（２次元の特徴量）
+	protected ThresholdDeterminer2D  thresholds2d[];
+
 	// グラフ描画モジュール
 	protected GraphViewer  graph_viewr;
 
 	// 実行モード
 	protected int  mode;
 	protected final int  RECOGNITION_MODE = 1;
+	protected final int  RECOGNITION_2D_MODE = 3;
 	protected final int  FEATURE_MODE = 2;
 
 	// 学習・文字認識テストの結果（誤認識率）
 	protected float  error, error0, error1;
+
+
+	// 読み込む画像の設定
+	protected String   image_dir = "Samples8Bgif/"; // フォルダ名（プロジェクトからの相対パス）
+	protected String   image_ext = ".gif";          // 拡張子
+	protected String   image_name0 = "pic8_";       // 頭につける文字列(文字0)
+	protected String   image_name1 = "picB_";       // 頭につける文字列(文字1)
+	protected int      num_images0 = 55;            // ファイル数(文字0)
+	protected int      num_images1 = 55;            // ファイル数(文字1)
+	protected int      image_digits = 3;            // 連番の桁数
+	protected String   character0 = "8";            // 文字名(表示用)(文字0)
+	protected String   character1 = "B";            // 文字名(表示用)(文字0)
 
 	// サンプル画像
 	protected BufferedImage  sample_images0[];
@@ -60,34 +76,48 @@ public class RecognitionApp extends JApplet
 	// 全サンプル画像のインデックス（画像名→画像オブジェクト の参照）
 	protected TreeMap  image_index;
 
+
 	// UI用コンポーネント
 	protected JPanel  ui_panel;
 	protected JLabel  mode_button_label, threshold_label, feature_label[], image_label;
 	protected JRadioButton  mode_r_bottun, mode_f_bottun;
 	protected JComboBox  threshold_list, feature_list[], image_list;
+	protected JRadioButton  mode_r2_bottun;
+	protected JLabel  threshold2_label;
+	protected JComboBox  threshold2_list;
 	protected MainScreen  screen;
+
+	// エラーメッセージ
+	protected String  error_message;
 
 
 	// 初期化処理
 	public void  init()
 	{
 		// 利用可能な特徴量計算モジュールを初期化
-		features = new FeatureEvaluater[ 1 ];
+		features = new FeatureEvaluater[ 2 ];
 		features[ 0 ] = new FeatureLeftLinerity();
+		features[ 1 ] = new FeatureWidthRatio();
 
 		// 利用可能な閾値決定モジュール（１次元の特徴量）を初期化
-//		thresholds = new ThresholdDeterminer[ 1 ];
-//		thresholds[ 0 ] = new ThresholdByAverage();
 		thresholds = new ThresholdDeterminer[ 4 ];
 		thresholds[ 0 ] = new ThresholdByAverage();
 		thresholds[ 1 ] = new ThresholdByProbability();
 		thresholds[ 2 ] = new ThresholdByCumulative();
 		thresholds[ 3 ] = new ThresholdByMinimization();
 
+		// 利用可能な閾値決定モジュール（２次元の特徴量）を初期化
+		thresholds2d = new ThresholdDeterminer2D[ 3 ];
+		thresholds2d[ 0 ] = new Threshold2DByGaussian1();
+		thresholds2d[ 1 ] = new Threshold2DByGaussian2();
+		thresholds2d[ 2 ] = new Threshold2DByGaussian3();
+
 		// 文字画像判別モジュールの生成
-		recognizer = new CharacterRecognizer();
+		recognizer = new CharacterRecognizer2D();
 		recognizer.setFeatureEvaluater( features[ 0 ] );
 		recognizer.setThresholdDeterminer( thresholds[ 0 ] );
+		recognizer.setFeatureEvaluater( 1, features[ 1 ] );
+		recognizer.setThresholdDeterminer2D( thresholds2d[ 0 ] );
 
 		// グラフ描画モジュールの生成
 		graph_viewr = new GraphViewer();
@@ -95,6 +125,9 @@ public class RecognitionApp extends JApplet
 		// 開始時の実行モードの設定
 //		mode = FEATURE_MODE;
 		mode = RECOGNITION_MODE;
+
+		// 開始時の表示メッセージの設定
+		error_message = "初期化・画像認識処理の実行中 ...";
 
 
 		// 全サンプル画像の読み込み
@@ -120,18 +153,17 @@ public class RecognitionApp extends JApplet
 	//  メイン処理
 	//
 
-//	// サンプル画像を使った文字画像認識のテスト
-//	public void  recognitionTest()
-//	{
-//		// 要実装
-//	}
-
 	// サンプル画像を使った文字画像認識のテスト
 	public void  recognitionTest()
 	{
+		// サンプル画像が読み込まれていなければ終了
+		if ( ( sample_images0 == null ) || ( sample_images1 == null ) )
+			return;
+
 		// 全てのサンプル画像を使って学習
 		recognizer.train( sample_images0, sample_images1 );
-			// 全てのサンプル画像を使って誤認識率を計算
+
+		// 全てのサンプル画像を使って誤認識率を計算
 		int  error_count[] = { 0, 0 };
 		int  char_no;
 		error_count[ 0 ] = 0;
@@ -154,6 +186,9 @@ public class RecognitionApp extends JApplet
 
 		// 特徴空間・閾値などをグラフに設定
 		recognizer.drawGraph( graph_viewr );
+
+		// エラーメッセージを解除（メイン画面の描画開始）
+		error_message = "";
 
 		// 画面の再描画
 		repaint();
@@ -187,18 +222,23 @@ public class RecognitionApp extends JApplet
 		// モード選択のためのラジオボタンを追加
 		mode_button_label = new JLabel( "実行モード： " );
 		mode_r_bottun = new JRadioButton( "文字画像認識", true );
+		mode_r2_bottun = new JRadioButton( "文字画像認識(2D）", true );
 		mode_f_bottun = new JRadioButton( "特徴量表示", false );
 		ModeBottunListener  mb_listener = new ModeBottunListener();
 		mode_r_bottun.addActionListener( mb_listener );
+		mode_r2_bottun.addActionListener( mb_listener );
 		mode_f_bottun.addActionListener( mb_listener );
 		ui_grid.setConstraints( mode_button_label, ui_grid_label );
 		ui_grid.setConstraints( mode_r_bottun, ui_grid_label );
+		ui_grid.setConstraints( mode_r2_bottun, ui_grid_label );
 		ui_grid.setConstraints( mode_f_bottun, ui_grid_box );
 		ui_panel.add( mode_button_label );
 		ui_panel.add( mode_r_bottun );
+		ui_panel.add( mode_r2_bottun );
 		ui_panel.add( mode_f_bottun );
 		ButtonGroup  mode_group = new ButtonGroup();
 		mode_group.add( mode_r_bottun );
+		mode_group.add( mode_r2_bottun );
 		mode_group.add( mode_f_bottun );
 
 		// 閾値の計算方法選択のためのコンボボックスの追加
@@ -217,10 +257,27 @@ public class RecognitionApp extends JApplet
 				threshold_list.addItem( (String) thresholds[ i ].getThresholdName() );
 		}
 
+		// 閾値の計算方法（２次元）選択のためのコンボボックスの追加
+		threshold2_label = new JLabel( "閾値の計算方法： " );
+		threshold2_list = new JComboBox();
+		ui_grid.setConstraints( threshold2_label, ui_grid_label );
+		ui_grid.setConstraints( threshold2_list, ui_grid_box );
+		ui_panel.add( threshold2_label );
+		ui_panel.add( threshold2_list );
+
+		// コンボボックスに閾値の計算方法（２次元）の名前を追加
+		for ( int i=0; i<thresholds2d.length; i++ )
+		{
+			threshold2_list.addItem( (String) thresholds2d[ i ].getThresholdName() );
+			if ( recognizer.getThresholdDeterminer2D() == thresholds2d[ i ])
+			threshold2_list.setSelectedIndex( i );
+		}
+		threshold2_list.addActionListener( new Threshold2DListListener() );
+
 		// 特徴量の計算方法選択のためのコンボボックスの追加
-		feature_label = new JLabel[ 1 ];
-		feature_list = new JComboBox[ 1 ];
-		for ( int i=0; i<1; i++ )
+		feature_label = new JLabel[ 2 ];
+		feature_list = new JComboBox[ 2 ];
+		for ( int i=0; i<2; i++ )
 		{
 			feature_label[ i ] = new JLabel( "特徴量" + (i + 1) + "の計算方法： " );
 			ui_grid.setConstraints( feature_label[ i ], ui_grid_label );
@@ -232,14 +289,14 @@ public class RecognitionApp extends JApplet
 		}
 
 		// コンボボックスに特徴量の計算方法の名前を追加
-		for ( int i=0; i<1; i++ )
+		for ( int i=0; i<2; i++ )
 		{
 			for ( int j=0; j<features.length; j++ )
 			{
 				if ( features[ j ] != null )
 				{
 					feature_list[ i ].addItem( (String) features[ j ].getFeatureName() );
-					if ( recognizer.getFeatureEvaluater() == features[ j ])
+					if ( recognizer.getFeatureEvaluater( i ) == features[ j ])
 						feature_list[ i ].setSelectedIndex( j );
 				}
 			}
@@ -281,18 +338,42 @@ public class RecognitionApp extends JApplet
 		if ( mode == RECOGNITION_MODE )
 		{
 			mode_r_bottun.setSelected( true );
+			mode_r2_bottun.setSelected( false );
 			mode_f_bottun.setSelected( false );
 			threshold_label.setVisible( true );
 			threshold_list.setVisible( true );
+			threshold2_label.setVisible( false );
+			threshold2_list.setVisible( false );
+			feature_label[ 1 ].setVisible( false );
+			feature_list[ 1 ].setVisible( false );
+			image_label.setVisible( false );
+			image_list.setVisible( false );
+		}
+		else if ( mode == RECOGNITION_2D_MODE )
+		{
+			mode_r_bottun.setSelected( false );
+			mode_r2_bottun.setSelected( true );
+			mode_f_bottun.setSelected( false );
+			threshold_label.setVisible( false );
+			threshold_list.setVisible( false );
+			threshold2_label.setVisible( true );
+			threshold2_list.setVisible( true );
+			feature_label[ 1 ].setVisible( true );
+			feature_list[ 1 ].setVisible( true );
 			image_label.setVisible( false );
 			image_list.setVisible( false );
 		}
 		else
 		{
 			mode_r_bottun.setSelected( false );
+			mode_r2_bottun.setSelected( false );
 			mode_f_bottun.setSelected( true );
+			feature_label[ 1 ].setVisible( false );
+			feature_list[ 1 ].setVisible( false );
 			threshold_list.setVisible( false );
 			threshold_label.setVisible( false );
+			threshold2_label.setVisible( false );
+			threshold2_list.setVisible( false );
 			image_label.setVisible( true );
 			image_list.setVisible( true );
 		}
@@ -309,7 +390,15 @@ public class RecognitionApp extends JApplet
 
 			// 選択されたボタンに応じて実行モードの変更
 			if ( selected == mode_r_bottun )
+			{
 				mode = RECOGNITION_MODE;
+				recognizer.setDimension( 1 );
+			}
+			else if ( selected == mode_r2_bottun )
+			{
+				mode = RECOGNITION_2D_MODE;
+				recognizer.setDimension( 2 );
+			}
 			else if ( selected == mode_f_bottun )
 				mode = FEATURE_MODE;
 
@@ -317,7 +406,7 @@ public class RecognitionApp extends JApplet
 			updateUIComponents();
 
 			// 文字画像判別テストを再度実行
-			if ( mode == RECOGNITION_MODE )
+			if ( ( mode == RECOGNITION_MODE ) || ( mode == RECOGNITION_2D_MODE ) )
 				recognitionTest();
 
 			// 選択画像の特徴量を計算
@@ -367,24 +456,60 @@ public class RecognitionApp extends JApplet
 		}
 	}
 
+	// 閾値の計算方法（２次元）の選択処理のためのリスナクラス（内部クラス）
+	class  Threshold2DListListener implements ActionListener
+	{
+		// アイテムが選択された時に呼ばれる処理
+		public void  actionPerformed( ActionEvent e )
+		{
+			// 選択された閾値の計算方法のインデックスを取得
+			int  no = threshold2_list.getSelectedIndex();
+
+			// 選択されたインデックスが無効であれば何もせず終了
+			if ( ( no == -1 ) || ( thresholds[ no ] == null ) )
+				return;
+
+			// 選択された閾値の計算方法が現在のものと同じで有れば何もせず終了
+			if ( thresholds2d[ no ] == recognizer.getThresholdDeterminer2D() )
+				return;
+
+			// 選択された閾値の計算方法を設定
+			recognizer.setThresholdDeterminer2D( thresholds2d[ no ] );
+
+			// 文字画像判別テストを再度実行
+			recognitionTest();
+
+			// 全体を再描画
+			repaint();
+		}
+	}
+
 	// 特徴量の計算方法の選択処理のためのリスナクラス（内部クラス）
 	class  FeatureListListener implements ActionListener
 	{
 		// アイテムが選択された時に呼ばれる処理
 		public void  actionPerformed( ActionEvent e )
 		{
+			// アイテムが変更されたリストを取得
+			JComboBox  changed_list = (JComboBox) e.getSource();
+			int  dim;
+			if ( changed_list == feature_list[ 0 ] )
+				dim = 0;
+			else
+				dim = 1;
+
 			// 選択された特徴量の計算方法のインデックスを取得
-			int  no = feature_list[ 0 ].getSelectedIndex();
+			int  no = feature_list[ dim ].getSelectedIndex();
 
 			// 選択されたインデックスが無効なら何もせず終了
 			if ( ( no == -1 ) || ( features[ no ] == null ) )
 				return;
 			// 選択された閾値の計算方法が現在のものと同じなら何もせず終了
-			if ( features[ no ] == recognizer.getFeatureEvaluater() )
+			if ( features[ no ] == recognizer.getFeatureEvaluater( dim ) )
 				return;
 
 			// 選択された閾値の計算方法を設定
-			recognizer.setFeatureEvaluater( features[ no ] );
+			recognizer.setFeatureEvaluater( dim, features[ no ] );
 
 			// 文字画像判別テストを再度実行
 			recognitionTest();
@@ -447,8 +572,15 @@ public class RecognitionApp extends JApplet
 			// 親コンポーネントの描画
 			super.paint( g );
 
+			// エラーメッセージが設定されていれば表示
+			if ( ( error_message != null ) && ( error_message.length() > 0 ) )
+			{
+				g.drawString( error_message, 16, 16 );
+				return;
+			}
+
 			// 文字画像認識モードでは特徴空間・認識率を描画
-			if ( mode == RECOGNITION_MODE )
+			if ( ( mode == RECOGNITION_MODE ) || ( mode == RECOGNITION_2D_MODE ) )
 			{
 				// 特徴空間を表すグラフを描画
 				graph_viewr.paint( g );
@@ -458,9 +590,9 @@ public class RecognitionApp extends JApplet
 				g.setColor( Color.BLACK );
 				message = "誤認識率: " + error;
 				g.drawString( message, 16, 16 );
-				message = "8 の誤認識率: " + error0;
+				message = character0 + "の誤認識率: " + error0;
 				g.drawString( message, 16, 32 );
-				message = "B の誤認識率: " + error1;
+				message = character1 + "の誤認識率: " + error1;
 				g.drawString( message, 16, 48 );
 				if ( mode == RECOGNITION_MODE )
 				{
@@ -483,22 +615,40 @@ public class RecognitionApp extends JApplet
 	//
 
 	// サンプル画像の読み込み
-//	public void  loadSampleImages()
-//	{
-//		// 要実装 -> 済
-//		// 8のサンプル画像の読み込み
-//
-//		sample_images0 = loadBufferdImages("Samples8Bgif/pic8_", 1, 55, 3, "gif");
-//	}
-
-	// サンプル画像の読み込み
 	public void  loadSampleImages()
 	{
-		// 8 のサンプル画像を読み込み（Samples8Bgif/pic8_001.gif ～ pic8_105.gif の105枚）
-		sample_images0 = loadBufferedImages( "Samples8Bgif/pic8_", 1, 105, 3, ".gif" );
+		// サンプル画像の読み込み
+		if ( ( image_name0.length() > 0 ) && ( image_name1.length() > 0 ) )
+		{
+			sample_images0 = loadBufferedImages( image_dir + image_name0, 1, num_images0, image_digits, image_ext );
+			sample_images1 = loadBufferedImages( image_dir + image_name1, 1, num_images1, image_digits, image_ext );
+		}
+		else
+		{
+			error_message = "読み込む画像名が指定されていません。";
+		}
 
-		// B のサンプル画像を読み込み（Samples8Bgif/picB_001.gif ～ picB_105.gif の105枚）
-		sample_images1 = loadBufferedImages( "Samples8Bgif/picB_", 1, 105, 3, ".gif" );
+		// 画像ファイルの読み込みに成功したかどうかを確認
+		for ( int i=0; i<sample_images0.length; i++ )
+		{
+			if ( sample_images0[ i ] == null )
+			{
+				error_message = image_name0 + "*" + image_ext + " の " + (i + 1) + "番目の画像の読み込みに失敗しました。";
+				sample_images0 = null;
+				sample_images1 = null;
+				return;
+			}
+		}
+		for ( int i=0; i<sample_images1.length; i++ )
+		{
+			if ( sample_images1[ i ] == null )
+			{
+				error_message = image_name1 + "*" + image_ext + " の " + (i + 1) + "番目の画像の読み込みに失敗しました。";
+				sample_images0 = null;
+				sample_images1 = null;
+				return;
+			}
+		}
 
 		// 全ての画像をインデックスに記録する
 		image_index = new TreeMap();
@@ -506,17 +656,17 @@ public class RecognitionApp extends JApplet
 		for ( int i=0; i<sample_images0.length; i++ )
 		{
 			name = "" + (i + 1);
-			while ( name.length() < 3 )
+			while ( name.length() < image_digits )
 				name = "0" + name;
-			name = "pict8_" + name;
+			name = image_name0 + name;
 			image_index.put( name, sample_images0[ i ] );
 		}
 		for ( int i=0; i<sample_images1.length; i++ )
 		{
 			name = "" + (i + 1);
-			while ( name.length() < 3 )
+			while ( name.length() < image_digits )
 				name = "0" + name;
-			name = "pictB_" + name;
+			name = image_name1 + name;
 			image_index.put( name, sample_images1[ i ] );
 		}
 	}
@@ -557,6 +707,7 @@ public class RecognitionApp extends JApplet
 			return  null;
 		}
 	}
+
 
 	//
 	//  メイン関数
