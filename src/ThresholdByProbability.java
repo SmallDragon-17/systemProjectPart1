@@ -126,7 +126,6 @@ class  ThresholdByProbability extends ThresholdByAverage
 	}
 
 	public Map<String, Float> calcIntersectionPoint( Map<String, Float> pt, int cnt) {
-		System.out.println(pt);
 		float s1 = ((((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point2LY") - pt.get("point2RY"))) - ((pt.get("point1LY") - pt.get("point1RY")) * (pt.get("lineLX") - pt.get("lineRX")))) / 2);
 		float s2 = ((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point1RY") - pt.get("point2RY"))) / 2;
 		float area = s1 + s2;

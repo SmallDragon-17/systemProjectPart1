@@ -34,7 +34,6 @@ class  ThresholdByMinimization extends ThresholdByCumulative
 		float maxFalseRate = error_sum[0];
 		ArrayList<Float> floatList = new ArrayList<Float>();
 		for(float iErrorSum: error_sum){
-			System.out.println(maxFalseRate + " Rate : i " + iErrorSum);
 			maxFalseRate = Math.max(maxFalseRate, iErrorSum);
 			floatList.add(iErrorSum);
 		}
