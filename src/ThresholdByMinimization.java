@@ -1,5 +1,5 @@
-import java.lang.Math;
 import java.awt.Color;
+import java.util.ArrayList;
 
 
 //
@@ -22,14 +22,26 @@ class  ThresholdByMinimization extends ThresholdByCumulative
 	{
 		// 基底クラス（ThresholdByCumulative）の閾値計算処理を実行（累積分布までを計算）
 		super.determine( features0, features1 );
-		
+
 		// 累積分布から合計の誤認識率の分布を計算
 		makeErrorSum();
 
-		
+
 		// 各区間ごとに合計の誤認識率が最大になるかどうかを調べて、最大の区間を閾値とする
 		// 要実装
-		threshold = ...;
+
+		// 最大値を求めるのみ
+		float maxFalseRate = error_sum[0];
+		ArrayList<Float> floatList = new ArrayList<Float>();
+		for(float iErrorSum: error_sum){
+			System.out.println(maxFalseRate + " Rate : i " + iErrorSum);
+			maxFalseRate = Math.max(maxFalseRate, iErrorSum);
+			floatList.add(iErrorSum);
+		}
+
+//		threshold = ...;
+		float newThreshold = (floatList.indexOf(maxFalseRate) + 0.5f) * histogram_delta_f + histogram_min_f;
+		threshold = newThreshold;
 	}
 
 	// 特徴空間のデータをグラフに描画（グラフオブジェクトに図形データを設定）
@@ -37,10 +49,10 @@ class  ThresholdByMinimization extends ThresholdByCumulative
 	{
 		// 合計の誤認識率の分布を折れ線グラフで描画
 		drawErrorSum( gv );
-		
+
 		// データ分布を散布図で描画
 		drawScatteredGraph( gv, 0.0f, -0.1f );
-		
+
 		// 閾値を描画
 		drawThreshold( gv );
 	}
@@ -49,20 +61,20 @@ class  ThresholdByMinimization extends ThresholdByCumulative
 	//
 	//  閾値計算のための内部メソッド
 	//
-	
+
 	// 累積分布から合計の誤認識率の分布を計算
 	protected void  makeErrorSum()
 	{
 		error_sum = new float[ cumulative0.length ];
 		for ( int i=0; i<cumulative0.length; i++ )
 			error_sum[ i ] = Math.abs( cumulative0[ i ] - cumulative1[ i ] );
-	}	
-	
+	}
+
 
 	//
 	//  特徴空間描画のための内部メソッド
 	//
-	
+
 	// 合計の誤認識率の分布を折れ線グラフで描画
 	protected void  drawErrorSum( GraphViewer gv )
 	{
