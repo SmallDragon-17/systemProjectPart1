@@ -52,10 +52,10 @@ class  ThresholdByProbability extends ThresholdByAverage
 			prob0_right = probability0[ seg_no + 1 ];
 			prob1_right = probability1[ seg_no + 1 ];
 
-			// 区間の右端・左端の特徴量の値をヒストグラムの情報から計算
-			float  value_left, value_right;
-			value_left = ( seg_no + 0.5f ) * histogram_delta_f + histogram_min_f;
-			value_right = ( seg_no + 1 + 0.5f ) * histogram_delta_f + histogram_min_f;
+//			// 区間の右端・左端の特徴量の値をヒストグラムの情報から計算
+//			float  value_left, value_right;
+//			value_left = ( seg_no + 0.5f ) * histogram_delta_f + histogram_min_f;
+//			value_right = ( seg_no + 1 + 0.5f ) * histogram_delta_f + histogram_min_f;
 
 			// 線分(feature_left, prob0_left) - (feature_right, prob0_right)
 			// 線分(feature_left, prob1_left) - (feature_right, prob1_right)
@@ -70,7 +70,7 @@ class  ThresholdByProbability extends ThresholdByAverage
 			// もしくはどちらかで出現確率が等しければ、
 			// その区間で必ず出現確率が等しい点が存在する
 //			if ( /* 要実装 */ )
-			if ( prob0_left > prob1_left && prob1_right > prob0_right )
+			if ( prob0_left > prob1_left && prob1_right >= prob0_right )
 			{
 				// Line 1
 				pt.put("point1LY", prob0_left);
@@ -104,33 +104,34 @@ class  ThresholdByProbability extends ThresholdByAverage
 				crossPoint = calcIntersectionPoint(pt, cnt);
 
 //				threshold = crossPoint.get("x");
+				cnt = cnt + 1;
 
 			}
 		}
 
-		float numbers[] = new float[cnt];
+		// float numbers[] = new float[cnt];
+		new_threshold = crossPoint.get("x" + 0);
 		float calcThreshold = 0;
-		if (cnt > 1) {
+		if (cnt > 0) {
 			calcThreshold = threshold - crossPoint.get("x" + 0);
 			for (int i = 1; i < cnt; i++) {
 				if (threshold - crossPoint.get("x" + i) < calcThreshold){
-					calcThreshold = threshold - crossPoint.get("x" + i);
+					new_threshold = threshold - crossPoint.get("x" + i);
 				}
 //				numbers[i] = threshold - crossPoint.get("x" + i);
 			}
 
 		}
-		min_new_threshold = calcThreshold;
 		// 新しい閾値を設定
-		threshold = min_new_threshold;
+		threshold = new_threshold;
 	}
 
 	public Map<String, Float> calcIntersectionPoint( Map<String, Float> pt, int cnt) {
-		float s1 = ((((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point2LY") - pt.get("point2RY"))) - ((pt.get("point1LY") - pt.get("point1RY")) * (pt.get("lineLX") - pt.get("lineRX")))) / 2);
+		float s1 = (((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point2LY") - pt.get("point1RY")) - (pt.get("point1LY") - pt.get("point1RY")) * (pt.get("lineLX") - pt.get("lineRX"))) / 2);
 		float s2 = ((pt.get("lineLX") - pt.get("lineRX")) * (pt.get("point1RY") - pt.get("point2RY"))) / 2;
 		float area = s1 + s2;
-		float x = (pt.get("lineLX") + (pt.get("lineRX") - pt.get("lineLX")) * s1 ) / area;
-		float y = (pt.get("lineLX") + (pt.get("point2RY") - pt.get("point2LY")) * s1 ) / area;
+		float x = pt.get("lineLX") + (pt.get("lineRX") - pt.get("lineLX")) * s1 / area;
+		float y = pt.get("lineLX") + (pt.get("point2RY") - pt.get("point2LY")) * s1 / area;
 		Map<String, Float> crossPoint = new HashMap<String, Float>();
 		crossPoint.put("x" + cnt, x);
 		crossPoint.put("y" + cnt, y);
