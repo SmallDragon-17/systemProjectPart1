@@ -173,6 +173,7 @@ public class RecognitionApp extends JApplet
 	// 開始処理
 	public void  start()
 	{
+		sampleDistribution();
 		// 文字画像判別テストの実行
 		recognitionTest();
 	}
@@ -783,11 +784,36 @@ public class RecognitionApp extends JApplet
 			int evaluation_end0;    // 評価データの最後尾
 			int evaluation_count0;  // 評価データの個数
 
+			// sample_images0.length×cv_evaluation_fold / cv_number_of_folds
+
+			evaluation_begin0 = (sample_images0.length * cv_evaluation_fold) / cv_number_of_folds;
+			evaluation_end0 = ((sample_images0.length * (cv_evaluation_fold + 1)) / cv_number_of_folds) - 1;
+			evaluation_count0 = evaluation_end0 - evaluation_begin0 + 1;
+
 			//  ここは各自で完成
 			// sample_images0 全画像が入っている.
-			// cv_number_of_folds is Number of groups to divide.
-			// cv_evaluation_fold is Group number used for evaluation.
-			float picNumInFold = sample_images0.length / cv_number_of_folds;
+//			// cv_number_of_folds is Number of groups to divide.
+//			// cv_evaluation_fold is Group number used for evaluation.
+//			if (sample_images0.length % cv_number_of_folds == 0) {
+//				evaluation_count0 = sample_images0.length / cv_number_of_folds;
+//				evaluation_begin0 = (cv_evaluation_fold - 1) * evaluation_count0;
+//				evaluation_end0 = evaluation_begin0 + evaluation_count0;
+//			} else {
+//				// java切り捨て 88で考える fold is 10
+//				int calcMinPicPerFolds = sample_images0.length / cv_number_of_folds; // 8 <= 8.8
+//				int minTotalPic = cv_number_of_folds * calcMinPicPerFolds; // 80
+//				int surplus = sample_images0.length - minTotalPic;
+//
+//				evaluation_count0 = calcMinPicPerFolds;
+//				if(cv_evaluation_fold < surplus + 1) {
+//					evaluation_count0 = calcMinPicPerFolds + 1;
+//					evaluation_begin0 = (cv_evaluation_fold - 1) * evaluation_count0;
+//					evaluation_end0 = evaluation_begin0 + evaluation_count0;
+//				} else {
+//
+//				}
+//
+//			}
 
 
 		// 全サンプル画像の何番目～何番目のデータを評価に使用するかを決定 （文字1）
@@ -797,18 +823,58 @@ public class RecognitionApp extends JApplet
 			int evaluation_count1;  // 評価データの個数
 
 			//  ここは各自で完成
+			evaluation_begin1 = (sample_images1.length * cv_evaluation_fold) / cv_number_of_folds;
+			evaluation_end1 = ((sample_images1.length * (cv_evaluation_fold + 1)) / cv_number_of_folds) - 1;
+			evaluation_count1 = evaluation_end1 - evaluation_begin1 + 1;
+
 
 		// 全サンプル画像を評価用画像と学習用画像の配列に分配 （文字0）
 
 			//  ここは各自で完成
+			int arrayTotalSize = sample_images0.length - evaluation_count0;
+			training_images0 = new BufferedImage[arrayTotalSize];
+			evaluation_images0 = new BufferedImage[evaluation_count0];
+
+			for(int i = 0; i < sample_images0.length; i++) {
+				int cntE = 0;
+				if(evaluation_begin0 < i && i < evaluation_end0) {
+					evaluation_images0[cntE] = sample_images0[i];
+					cntE = cntE + 1;
+				}
+				if (i < evaluation_begin0) {
+					training_images0[i] = sample_images0[i];
+				} else if (i > evaluation_end0) {
+					training_images0[i - evaluation_count0] = sample_images0[i];
+				}
+			}
 
 		// 全サンプル画像を評価用画像と学習用画像の配列に分配 （文字1）
 
 			//  ここは各自で完成
+			arrayTotalSize = sample_images1.length - evaluation_count1;
+			training_images0 = new BufferedImage[arrayTotalSize];
+			evaluation_images0 = new BufferedImage[evaluation_count1];
 
+			for(int i = 0; i < sample_images1.length; i++) {
+				int cntE = 0;
+				if(evaluation_begin0 < i && i < evaluation_end0) {
+					evaluation_images1[cntE] = sample_images1[i];
+					cntE = cntE + 1;
+				}
+				if (i < evaluation_begin0) {
+					training_images1[i] = sample_images1[i];
+				} else if (i > evaluation_end0) {
+					training_images1[i - evaluation_count0] = sample_images1[i];
+				}
+			}
+
+
+			System.out.println(training_images0 + " Train image0");
+			System.out.println(training_images1 + " Train image1");
+			System.out.println(evaluation_images0 + " Train image0");
+			System.out.println(evaluation_images1 + " Train image0");
 		}
 	}
-
 
 	//
 	//  メイン関数
