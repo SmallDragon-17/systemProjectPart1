@@ -69,6 +69,16 @@ public class RecognitionApp extends JApplet
 	protected String   character0 = "8";            // 文字名(表示用)(文字0)
 	protected String   character1 = "B";            // 文字名(表示用)(文字0)
 
+
+	//　画像設定の追加
+	// 学習用データセット
+	protected BufferedImage training_images0[];
+	protected BufferedImage training_images1[];
+
+	// 検証用データセット
+	protected BufferedImage evaluation_images0[];
+	protected BufferedImage evaluation_images1[];
+
 	// サンプル画像
 	protected BufferedImage  sample_images0[];
 	protected BufferedImage  sample_images1[];
@@ -89,6 +99,25 @@ public class RecognitionApp extends JApplet
 
 	// エラーメッセージ
 	protected String  error_message;
+
+	// 学習用・評価用画像の決定方法の設定
+	enum  DistributionMethod
+	{
+		USE_ALL_SAMPLES,
+		CROSS_VALIDATION,
+//		BOOTSTRAP
+	};
+
+	// 学習用・評価用画像の決定方法
+	protected DistributionMethod  distribution_method =
+			DistributionMethod.CROSS_VALIDATION;
+
+	// 学習・評価用設定
+	// Cross Validation 法を用いるときのグループ数
+	protected int  cv_number_of_folds = 4;
+
+	// Cross Validation 法を用いるとき、何番目のグループを評価に使用するか設定
+	protected int  cv_evaluation_fold = 0;
 
 
 	// 初期化処理
@@ -152,6 +181,8 @@ public class RecognitionApp extends JApplet
 	//
 	//  メイン処理
 	//
+
+	// 画像振り分け
 
 	// サンプル画像を使った文字画像認識のテスト
 	public void  recognitionTest()
@@ -705,6 +736,76 @@ public class RecognitionApp extends JApplet
 		catch ( Exception e )
 		{
 			return  null;
+		}
+	}
+
+	// 学習・評価に用いるサンプル画像の決定
+	public void  sampleDistribution()
+	{
+		// サンプル画像が読み込まれていなければ終了
+		if ( ( sample_images0 == null ) || ( sample_images1 == null ) )
+			return;
+
+		// 学習用画像の配列を削除する
+		training_images0 = null;
+		training_images1 = null;
+
+		// 評価用画像の配列を削除する
+		evaluation_images0 = null;
+		evaluation_images1 = null;
+
+		// 全てのサンプル画像を学習と評価に使用
+		if ( distribution_method == DistributionMethod.USE_ALL_SAMPLES )
+		{
+			// 全てのサンプル画像を学習用画像の配列にコピー
+			training_images0 = new BufferedImage[ sample_images0.length ];
+			for ( int i=0; i<sample_images0.length; i++ )
+				training_images0[ i ] = sample_images0[ i ];
+			training_images1 = new BufferedImage[ sample_images1.length ];
+			for ( int i=0; i<sample_images1.length; i++ )
+				training_images1[ i ] = sample_images1[ i ];
+
+			// 全てのサンプル画像を評価用画像の配列にコピー
+			evaluation_images0 = new BufferedImage[ sample_images0.length ];
+			for ( int i=0; i<sample_images0.length; i++ )
+				evaluation_images0[ i ] = sample_images0[ i ];
+			evaluation_images1 = new BufferedImage[ sample_images1.length ];
+			for ( int i=0; i<sample_images1.length; i++ )
+				evaluation_images1[ i ] = sample_images1[ i ];
+		}
+
+		// Cross Validation 法を使用
+		if ( distribution_method == DistributionMethod.CROSS_VALIDATION )
+		{
+		// 全サンプル画像の何番目～何番目のデータを評価に使用するかを決定 （文字0）
+			//（cv_number_of_folds, cv_evaluation_fold をもとに決定）
+			int evaluation_begin0;  // 評価データの先頭
+			int evaluation_end0;    // 評価データの最後尾
+			int evaluation_count0;  // 評価データの個数
+
+			//  ここは各自で完成
+			// sample_images0 全画像が入っている.
+			// cv_number_of_folds is Number of groups to divide.
+			// cv_evaluation_fold is Group number used for evaluation.
+			float picNumInFold = sample_images0.length / cv_number_of_folds;
+
+
+		// 全サンプル画像の何番目～何番目のデータを評価に使用するかを決定 （文字1）
+			//（cv_number_of_folds, cv_evaluation_fold をもとに決定）
+			int evaluation_begin1;  // 評価データの先頭
+			int evaluation_end1;    // 評価データの最後尾
+			int evaluation_count1;  // 評価データの個数
+
+			//  ここは各自で完成
+
+		// 全サンプル画像を評価用画像と学習用画像の配列に分配 （文字0）
+
+			//  ここは各自で完成
+
+		// 全サンプル画像を評価用画像と学習用画像の配列に分配 （文字1）
+
+			//  ここは各自で完成
+
 		}
 	}
 
