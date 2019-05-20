@@ -80,7 +80,10 @@ class  ThresholdByProbability extends ThresholdByAverage
 				pt.put("point2RY", prob1_right);
 
 				// 交点を計算
-				crossPoint = calcIntersectionPoint(pt, cnt);
+				Map<String, Float> crsPt = new HashMap<String, Float>();
+				crsPt = calcIntersectionPoint(pt, cnt);
+				crossPoint.put("x" + cnt, crsPt.get("x" + cnt));
+				crossPoint.put("y" + cnt, crsPt.get("y" + cnt));
 
 				// 区間内の出現確率が等しい点を計算する
 				// 要実装
@@ -101,13 +104,18 @@ class  ThresholdByProbability extends ThresholdByAverage
 				// 区間内の出現確率が等しい点を計算する
 				// 要実装
 
-				crossPoint = calcIntersectionPoint(pt, cnt);
+				Map<String, Float> crsPt = new HashMap<String, Float>();
+				crsPt = calcIntersectionPoint(pt, cnt);
+				crossPoint.put("x" + cnt, crsPt.get("x" + cnt));
+				crossPoint.put("y" + cnt, crsPt.get("y" + cnt));
+//				crossPoint = calcIntersectionPoint(pt, cnt);
 
 //				threshold = crossPoint.get("x");
 				cnt = cnt + 1;
 
 			}
 		}
+
 
 		// float numbers[] = new float[cnt];
 		new_threshold = crossPoint.get("x" + 0);
