@@ -50,7 +50,7 @@ class  FeatureWidthRatio implements FeatureEvaluater
 			int  line_left = -1, line_right = -1;
 
 			// 左側から順番にピクセルを走査
-			for ( int x=0; x<height; x++ )
+			for ( int x=0; x<width; x++ )
 			{
 				// ピクセルの色を取得
 				int  color = image.getRGB( x, y );
@@ -154,7 +154,7 @@ class  FeatureWidthRatio implements FeatureEvaluater
 		lower_width = line_width[ lower_line ];
 
 		// 特徴量（上部の幅 / 下部の幅）を計算
-		return  ( upper_width / lower_width ) * 0.5f;
+		return  (upper_width / lower_width);
 	}
 
 	// 最後に行った特徴量計算の結果を描画する
