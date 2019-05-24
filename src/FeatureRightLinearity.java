@@ -98,8 +98,6 @@ class  FeatureRightLinearity implements FeatureEvaluater
 
 		left_range = lft_range;
 
-		// half
-
 
 		// 指定した左の範囲より右側の部分の文字を右から左へ（横に）探索していき、
 		// 黒い点があれば座標を記録
@@ -120,21 +118,18 @@ class  FeatureRightLinearity implements FeatureEvaluater
 				}
 			}
 		}
-/*
+
 		// 長さを測る範囲の決定
-		int start = 0;
-		for (int y = 0; y < height; y++) {
-			if(right_x[y] != -1) {
-				start = y;
-			}
-		}
-		int end = 0;
+		end = 0;
 		for (int y = height-1; y >= 0; y--) {
 			if(right_x[y] != -1) {
 				end = y;
+				break;
 			}
 		}
-*/
+
+		start = findPrtTopY(image, lft_range, end_points.get("右"), end_points.get("上"), end_points.get("下"));
+
 
 
 		//ギャップのある区間の分割
@@ -250,6 +245,55 @@ class  FeatureRightLinearity implements FeatureEvaluater
 					);
 			}
 		}
+	}
+
+	private int findPrtTopY(BufferedImage image, int leftX, int rightX, int topY, int bottomY) {
+		// @param image: 探索する画像
+		// @param leftX: 探索する範囲の左端のx座標
+		// @param rightX: 探索する範囲の右端のx座標
+		// @param topY: 探索する範囲の上端のy座標
+		// @param bottomY: 探索する範囲のy座標
+
+		// 求める右上の幅の左端を求める
+		// 左端は右上の範囲における頂点のx座標とする
+		// 頂点は、右から一列ずつ上から一番近い黒くなっているピクセル
+		// のy座標を見ていき、y座標が1つ右の黒い点のy座標と比べて大
+		// きくなったときの右の黒い点とする
+		int prt_topX = -1;
+		int crnt_y = bottomY; // 調べたy座標(x座標はx)
+		int prev_y = bottomY; // ひとつ前に調べたy座標(x座標はx-1)
+		for (int x = rightX; x > leftX; x--) {
+			for (int y = topY; y < bottomY; y++) {
+				int  color = image.getRGB( x, y );
+
+				if (color == 0xff000000)
+				{
+					crnt_y = y;
+					break;
+				}
+			}
+
+			if (crnt_y > prev_y) {
+				prt_topX = x;
+				break;
+			}
+
+			prev_y = crnt_y;
+		}
+
+		int prt_topY = 0;
+		for ( int y=topY; y<bottomY; y++ )
+		{
+			int  color = image.getRGB( prt_topX, y );
+
+			if ( color == 0xff000000 )
+			{
+				prt_topY = y;
+				break;
+			}
+		}
+
+		return prt_topY;
 	}
 
 	// 最後に行った特徴量計算の結果を描画する
