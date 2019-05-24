@@ -59,15 +59,24 @@ public class RecognitionApp extends JApplet
 
 
 	// 読み込む画像の設定
-	protected String   image_dir = "Samples8Bgif/"; // フォルダ名（プロジェクトからの相対パス）
-	protected String   image_ext = ".gif";          // 拡張子
-	protected String   image_name0 = "pic8_";       // 頭につける文字列(文字0)
-	protected String   image_name1 = "picB_";       // 頭につける文字列(文字1)
-	protected int      num_images0 = 55;            // ファイル数(文字0)
-	protected int      num_images1 = 55;            // ファイル数(文字1)
+	protected String   image_dir = "Samplesれわ/"; // フォルダ名（プロジェクトからの相対パス）
+	protected String   image_ext = ".bmp";          // 拡張子
+	protected String   image_name0 = "picれ_";       // 頭につける文字列(文字0)
+	protected String   image_name1 = "picわ_";       // 頭につける文字列(文字1)
+	protected int      num_images0 = 100;            // ファイル数(文字0)
+	protected int      num_images1 = 100;            // ファイル数(文字1)
 	protected int      image_digits = 3;            // 連番の桁数
-	protected String   character0 = "8";            // 文字名(表示用)(文字0)
-	protected String   character1 = "B";            // 文字名(表示用)(文字0)
+	protected String   character0 = "れ";            // 文字名(表示用)(文字0)
+	protected String character1 = "わ"; // 文字名(表示用)(文字0)
+//	protected String   image_dir = "Samples/"; // フォルダ名（プロジェクトからの相対パス）
+//	protected String   image_ext = ".gif";          // 拡張子
+//	protected String   image_name0 = "pic8_";       // 頭につける文字列(文字0)
+//	protected String   image_name1 = "picB_";       // 頭につける文字列(文字1)
+//	protected int      num_images0 = 55;            // ファイル数(文字0)
+//	protected int      num_images1 = 55;            // ファイル数(文字1)
+//	protected int      image_digits = 3;            // 連番の桁数
+//	protected String   character0 = "8";            // 文字名(表示用)(文字0)
+//	protected String   character1 = "B";            // 文字名(表示用)(文字0)
 
 
 	//　画像設定の追加
@@ -125,9 +134,10 @@ public class RecognitionApp extends JApplet
 	public void  init()
 	{
 		// 利用可能な特徴量計算モジュールを初期化
-		features = new FeatureEvaluater[ 2 ];
+		features = new FeatureEvaluater[ 3 ];
 		features[ 0 ] = new FeatureLeftLinerity();
 		features[ 1 ] = new FeatureWidthRatio();
+		features[ 2 ] = new FeatureAngleXTwoPoints();
 
 		// 利用可能な閾値決定モジュール（１次元の特徴量）を初期化
 		thresholds = new ThresholdDeterminer[ 4 ];
