@@ -4,7 +4,6 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 
-
 //
 //	文字画像の上部と下部の幅の比率を特徴量として計算するクラス
 //
@@ -52,7 +51,6 @@ class  FeatureAngleXTwoPoints implements FeatureEvaluater
 		boolean is_black_hzn[] = new boolean[height];
 		for (int y = 0; y < height; y++) {
 			is_black_hzn[y] = false;
-
 			for (int x = 0; x < width; x++) {
 				int  color = image.getRGB( x, y );
 
@@ -63,11 +61,11 @@ class  FeatureAngleXTwoPoints implements FeatureEvaluater
 				}
 			}
 		}
+
 		// 左から探索していって黒い点がある列はtrue, ない列はfalse（縦列）
 		boolean is_black_vcl[] = new boolean[width];
 		for (int x = 0; x < width; x++) {
 			is_black_vcl[x] = false;
-
 			for (int y = 0; y < height; y++) {
 				int  color = image.getRGB( x, y );
 
@@ -104,8 +102,7 @@ class  FeatureAngleXTwoPoints implements FeatureEvaluater
 		l_range = lft_range;
 		r_range = rit_range;
 
-		// 特徴量の計算の実装part2
-
+		// 特徴量の計算の実装
 		// configure x1 & x2
 		Map<String, Integer> pointsObj = searchPoint(image, lft_range, rit_range,
 				top_range, btm_range);
@@ -118,48 +115,9 @@ class  FeatureAngleXTwoPoints implements FeatureEvaluater
 		X1Line = pointsObj.get("underY");
 		X2Line = pointsObj.get("overY");
 
-
 		double radian = getRadian(x1, y1, x2, y2);
 
 		return (float)radian;
-
-		// 特徴量の計算の実装
-		// 右端の線を求める
-//		int right_line = findPrtRightLine(image, lft_range, rit_range,
-//				top_range, btm_range);
-//		// 右上の範囲に左端の線とするところが見つからなかったら左上の半分（右）範囲で探索する
-//		if (right_line == -1) {
-//			int new_lft_range = lft_range - (int)char_width / 4;
-//			right_line = findPrtRightLine(image, new_lft_range, rit_range,
-//					top_range, btm_range);
-//			lft_range = new_lft_range;
-//		}
-//		// 右上の左端の範囲を決定する
-//		prt_right_line = right_line;
-//
-//		// 左端の線を求める
-//		int left_line = findPrtLeftLine(image, lft_range, rit_range,
-//				top_range, btm_range);
-//		// 右上の範囲に左端の線とするところが見つからなかったら左上半分（右）の範囲で探索する
-//		if (left_line == -1) {
-//			int new_lft_range = lft_range - (int)char_width / 4;
-//			left_line = findPrtLeftLine(image, new_lft_range, rit_range,
-//					top_range, btm_range);
-//			lft_range = new_lft_range;
-//		}
-//		// 右上の左端の範囲を決定する
-//		prt_left_line = left_line;
-//
-//		// 確定した右上の範囲（左右）を描画用に記録する
-//		r_range = rit_range;
-//		l_range = lft_range;
-//
-//		// 切り抜いた右上の幅を求める
-//		part_width = prt_right_line - prt_left_line;
-//
-//
-//		// 特徴量（上部の幅 / 下部の幅）を計算
-//		return  (part_width / char_width);
 	}
 
 	// 文字の端点の座標（上下左右）を返す
