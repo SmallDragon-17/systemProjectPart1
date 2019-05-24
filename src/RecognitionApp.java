@@ -741,9 +741,6 @@ public class RecognitionApp extends JApplet
 	// 学習・評価に用いるサンプル画像の決定
 	public void  sampleDistribution()
 	{
-		// @param fold_num: CrossValidation法の際、何番目のグループかを表す
-		// 					cv_evaluation_foldに代入する
-
 		// サンプル画像が読み込まれていなければ終了
 		if ( ( sample_images0 == null ) || ( sample_images1 == null ) )
 			return;
