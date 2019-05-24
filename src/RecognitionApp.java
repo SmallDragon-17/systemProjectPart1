@@ -69,6 +69,16 @@ public class RecognitionApp extends JApplet
 	protected String   character0 = "8";            // 文字名(表示用)(文字0)
 	protected String   character1 = "B";            // 文字名(表示用)(文字0)
 
+
+	//　画像設定の追加
+	// 学習用データセット
+	protected BufferedImage training_images0[];
+	protected BufferedImage training_images1[];
+
+	// 検証用データセット
+	protected BufferedImage evaluation_images0[];
+	protected BufferedImage evaluation_images1[];
+
 	// サンプル画像
 	protected BufferedImage  sample_images0[];
 	protected BufferedImage  sample_images1[];
@@ -89,6 +99,26 @@ public class RecognitionApp extends JApplet
 
 	// エラーメッセージ
 	protected String  error_message;
+
+	// 学習用・評価用画像の決定方法の設定
+	enum  DistributionMethod
+	{
+		USE_ALL_SAMPLES,
+		CROSS_VALIDATION,
+		TEN_CROSS_VALIDATION,
+//		BOOTSTRAP
+	};
+
+	// 学習用・評価用画像の決定方法
+	protected DistributionMethod  distribution_method =
+			DistributionMethod.USE_ALL_SAMPLES;
+
+	// 学習・評価用設定
+	// Cross Validation 法を用いるときのグループ数
+	protected int  cv_number_of_folds = 10;
+
+	// Cross Validation 法を用いるとき、何番目のグループを評価に使用するか設定
+	protected int  cv_evaluation_fold = 0;
 
 
 	// 初期化処理
@@ -142,7 +172,7 @@ public class RecognitionApp extends JApplet
 	}
 
 	// 開始処理
-	public void  start()
+	public void start()
 	{
 		// 文字画像判別テストの実行
 		recognitionTest();
@@ -153,16 +183,91 @@ public class RecognitionApp extends JApplet
 	//  メイン処理
 	//
 
+	// 画像振り分け
+
 	// サンプル画像を使った文字画像認識のテスト
 	public void  recognitionTest()
 	{
+		// 学習・評価を行う回数の指定
+		// TEN_CROSS_VALIDATION の場合繰り返す数は10回
+		int rpt_num;
+		if (distribution_method == DistributionMethod.TEN_CROSS_VALIDATION) {
+			rpt_num = 10;
+		}
+		else {
+			rpt_num = 1;
+		}
+
 		// サンプル画像が読み込まれていなければ終了
 		if ( ( sample_images0 == null ) || ( sample_images1 == null ) )
 			return;
 
+
+		// それぞれの誤認識率を入れる配列を作成
+		float[] error_divided0, error_divided1, error_divided;
+		error_divided0 = new float[rpt_num];
+		error_divided1 = new float[rpt_num];
+		error_divided = new float[rpt_num];
+
+		// それぞれの配列に初期値0を代入
+		for (int i = 0; i < error_divided0.length; i++) {
+			error_divided0[i] = 0;
+		}
+
+		for  (int i = 0; i < rpt_num; i++) {
+			// 学習・評価に用いるサンプル画像の決定
+			sampleDistribution(i);
+
+			// 全てのサンプル画像を使って学習
+			recognizer.train( training_images0, training_images1 );
+
+			// 評価用画像を使って誤認識率を計算
+			int  error_count[] = { 0, 0 };
+			int  char_no;
+			error_count[ 0 ] = 0;
+			error_count[ 1 ] = 0;
+			for ( int ｊ=0; ｊ<evaluation_images0.length; ｊ++ )
+			{
+				char_no = recognizer.recognizeCharacter( evaluation_images0[ ｊ ] );
+				if ( char_no != 0 )
+					error_count[ 0 ] ++;
+			}
+			for ( int ｊ=0; ｊ<evaluation_images1.length; ｊ++ )
+			{
+				char_no = recognizer.recognizeCharacter( evaluation_images1[ ｊ ] );
+				if ( char_no != 1 )
+					error_count[ 1 ] ++;
+			}
+
+			error_divided0[i] = (float) error_count[ 0 ] / sample_images0.length;
+			error_divided1[i] = (float) error_count[ 1 ] / sample_images1.length;
+			error_divided[i] = (float) ( error_count[ 0 ] + error_count[ 1 ] ) / (float) ( sample_images0.length + sample_images1.length );
+		}
+
+		// それぞれの場合で求めた誤認識率を足し合わせる
+		float total_error0, total_error1, total_error;
+		total_error0 = 0;
+		total_error1 = 0;
+		total_error = 0;
+		for (int i = 0; i < rpt_num; i++) {
+			total_error0 += error_divided0[i];
+			total_error1 += error_divided1[i];
+			total_error += error_divided[i];
+		}
+		// 平均から誤認識率を求める
+		error0 = (float) total_error0 / error_divided0.length;
+		error1 = (float) total_error1 / error_divided1.length;
+		error = (float) total_error / error_divided.length;
+
+
+/*	すべてのサンプル画像を用いて学習・評価を行う場合
+ *
+ * 		// 学習・評価に用いるサンプル画像の決定
+		sampleDistribution();
+
 		// 全てのサンプル画像を使って学習
 		recognizer.train( sample_images0, sample_images1 );
-
+ *
 		// 全てのサンプル画像を使って誤認識率を計算
 		int  error_count[] = { 0, 0 };
 		int  char_no;
@@ -183,6 +288,7 @@ public class RecognitionApp extends JApplet
 		error0 = (float) error_count[ 0 ] / sample_images0.length;
 		error1 = (float) error_count[ 1 ] / sample_images1.length;
 		error = (float) ( error_count[ 0 ] + error_count[ 1 ] ) / (float) ( sample_images0.length + sample_images1.length );
+*/
 
 		// 特徴空間・閾値などをグラフに設定
 		recognizer.drawGraph( graph_viewr );
@@ -708,6 +814,149 @@ public class RecognitionApp extends JApplet
 		}
 	}
 
+	// 学習・評価に用いるサンプル画像の決定
+	public void  sampleDistribution(int fold_num)
+	{
+		// @param fold_num: CrossValidation法の際、何番目のグループかを表す
+		// 					cv_evaluation_foldに代入する
+
+		// サンプル画像が読み込まれていなければ終了
+		if ( ( sample_images0 == null ) || ( sample_images1 == null ) )
+			return;
+
+		// 学習用画像の配列を削除する
+		training_images0 = null;
+		training_images1 = null;
+
+		// 評価用画像の配列を削除する
+		evaluation_images0 = null;
+		evaluation_images1 = null;
+
+		// 全てのサンプル画像を学習と評価に使用
+		if ( distribution_method == DistributionMethod.USE_ALL_SAMPLES )
+		{
+			// 全てのサンプル画像を学習用画像の配列にコピー
+			training_images0 = new BufferedImage[ sample_images0.length ];
+			for ( int i=0; i<sample_images0.length; i++ )
+				training_images0[ i ] = sample_images0[ i ];
+			training_images1 = new BufferedImage[ sample_images1.length ];
+			for ( int i=0; i<sample_images1.length; i++ )
+				training_images1[ i ] = sample_images1[ i ];
+
+			// 全てのサンプル画像を評価用画像の配列にコピー
+			evaluation_images0 = new BufferedImage[ sample_images0.length ];
+			for ( int i=0; i<sample_images0.length; i++ )
+				evaluation_images0[ i ] = sample_images0[ i ];
+			evaluation_images1 = new BufferedImage[ sample_images1.length ];
+			for ( int i=0; i<sample_images1.length; i++ )
+				evaluation_images1[ i ] = sample_images1[ i ];
+		}
+
+		// Cross Validation 法を使用
+		if ( distribution_method == DistributionMethod.CROSS_VALIDATION ||
+				distribution_method == DistributionMethod.TEN_CROSS_VALIDATION)
+		{
+			cv_evaluation_fold = fold_num;
+
+		// 全サンプル画像の何番目～何番目のデータを評価に使用するかを決定 （文字0）
+			//（cv_number_of_folds, cv_evaluation_fold をもとに決定）
+			int evaluation_begin0;  // 評価データの先頭
+			int evaluation_end0;    // 評価データの最後尾
+			int evaluation_count0;  // 評価データの個数
+
+			// sample_images0.length×cv_evaluation_fold / cv_number_of_folds
+
+			evaluation_begin0 = (sample_images0.length / cv_number_of_folds) * cv_evaluation_fold;
+			evaluation_end0 = ((sample_images0.length / cv_number_of_folds)) * (cv_evaluation_fold + 1) - 1;
+			evaluation_count0 = evaluation_end0 - evaluation_begin0 + 1;
+
+			//  ここは各自で完成
+			// sample_images0 全画像が入っている.
+//			// cv_number_of_folds is Number of groups to divide.
+//			// cv_evaluation_fold is Group number used for evaluation.
+//			if (sample_images0.length % cv_number_of_folds == 0) {
+//				evaluation_count0 = sample_images0.length / cv_number_of_folds;
+//				evaluation_begin0 = (cv_evaluation_fold - 1) * evaluation_count0;
+//				evaluation_end0 = evaluation_begin0 + evaluation_count0;
+//			} else {
+//				// java切り捨て 88で考える fold is 10
+//				int calcMinPicPerFolds = sample_images0.length / cv_number_of_folds; // 8 <= 8.8
+//				int minTotalPic = cv_number_of_folds * calcMinPicPerFolds; // 80
+//				int surplus = sample_images0.length - minTotalPic;
+//
+//				evaluation_count0 = calcMinPicPerFolds;
+//				if(cv_evaluation_fold < surplus + 1) {
+//					evaluation_count0 = calcMinPicPerFolds + 1;
+//					evaluation_begin0 = (cv_evaluation_fold - 1) * evaluation_count0;
+//					evaluation_end0 = evaluation_begin0 + evaluation_count0;
+//				} else {
+//
+//				}
+//
+//			}
+
+
+		// 全サンプル画像の何番目～何番目のデータを評価に使用するかを決定 （文字1）
+			//（cv_number_of_folds, cv_evaluation_fold をもとに決定）
+			int evaluation_begin1;  // 評価データの先頭
+			int evaluation_end1;    // 評価データの最後尾
+			int evaluation_count1;  // 評価データの個数
+
+			//  ここは各自で完成
+			evaluation_begin1 = (sample_images1.length / cv_number_of_folds) * cv_evaluation_fold;
+			evaluation_end1 = ((sample_images1.length / cv_number_of_folds)) * (cv_evaluation_fold + 1) - 1;
+			evaluation_count1 = evaluation_end1 - evaluation_begin1 + 1;
+
+
+		// 全サンプル画像を評価用画像と学習用画像の配列に分配 （文字0）
+
+			//  ここは各自で完成
+			int arrayTotalSize = sample_images0.length - evaluation_count0;
+			training_images0 = new BufferedImage[arrayTotalSize];
+			evaluation_images0 = new BufferedImage[evaluation_count0];
+
+			int cntE = 0;
+			for(int i = 0; i < sample_images0.length; i++) {
+				if(evaluation_begin0 <= i && i <= evaluation_end0) {
+					evaluation_images0[cntE] = sample_images0[i];
+					cntE = cntE + 1;
+				}
+				if (i < evaluation_begin0) {
+					training_images0[i] = sample_images0[i];
+				} else if (i > evaluation_end0) {
+					training_images0[i - evaluation_count0] = sample_images0[i];
+				}
+			}
+
+		// 全サンプル画像を評価用画像と学習用画像の配列に分配 （文字1）
+
+			//  ここは各自で完成
+			arrayTotalSize = sample_images1.length - evaluation_count1;
+			training_images1 = new BufferedImage[arrayTotalSize];
+			evaluation_images1 = new BufferedImage[evaluation_count1];
+
+			cntE = 0;
+			for(int i = 0; i < sample_images1.length; i++) {
+				if(evaluation_begin1 <= i && i <= evaluation_end1) {
+					evaluation_images1[cntE] = sample_images1[i];
+					cntE = cntE + 1;
+				}
+				if (i < evaluation_begin1) {
+					training_images1[i] = sample_images1[i];
+				} else if (i > evaluation_end1) {
+					training_images1[i - evaluation_count1] = sample_images1[i];
+				}
+			}
+
+/*
+			System.out.println(training_images0 + " Train image0");
+			System.out.println(training_images1 + " Train image1");
+			System.out.println(evaluation_images0 + " Train image0");
+			System.out.println(evaluation_images1 + " Train image0");
+*/
+		}
+	}
+
 
 	//
 	//  メイン関数
@@ -723,7 +972,7 @@ public class RecognitionApp extends JApplet
 					System.exit(0);
 				}
 			} );
-		RecognitionApp  applet = new RecognitionApp();
+		RecognitionApp applet = new RecognitionApp();
 		applet.init();
 		frame.add( applet );
 		frame.setSize( 480, 480 );
