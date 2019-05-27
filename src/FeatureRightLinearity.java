@@ -12,13 +12,12 @@ import java.util.Map;
 //
 class  FeatureRightLinearity implements FeatureEvaluater
 {
-	// 右辺の長さと文字の高さ
+	// 右辺の長さと切り取った部分の高さ
 	protected float  right_length;
-	protected float  char_height;
+	protected float  prt_height;
 
+	// 右辺の黒い点のあるx座標
 	protected int right_x[];
-	protected int right_y_start;
-	protected int right_y_end;
 
 	//それぞれの右の線の始まりのy座標と終わりのy座標を格納する
 	protected List<int[]> right_y_list;
@@ -27,13 +26,17 @@ class  FeatureRightLinearity implements FeatureEvaluater
 	protected BufferedImage  last_image;
 
 	// 右のラインを見る際の範囲をあらわすx座標（描画用）
-	protected int left_range;
+	protected int prt_left_range;
+
+	// 右のラインを見る際の範囲をあらわすy座標（描画用）
+	protected int prt_top_range;
+	protected int prt_bottom_range;
 
 
 	// 特徴量の名前を返す
 	public String  getFeatureName()
 	{
-		return  "右辺の直線度（文字の高さ / 右側の辺の長さ）";
+		return  "右辺の直線度（右側の辺の高さ / 右側の辺の長さ）";
 	}
 
 	// 文字画像から１次元の特徴量を計算する
@@ -79,24 +82,14 @@ class  FeatureRightLinearity implements FeatureEvaluater
 		// 文字の端点（上下左右）を求める
 		Map<String, Integer> end_points = findEndPoints(height, width, is_black_hzn, is_black_vcl);
 
-		// 文字の上端と下端を決定する
-		right_y_start = end_points.get("上");
-		right_y_end = end_points.get("下");
-
-		// このメソッド内部で使用するように変数を用意する
-		int start = right_y_start;
-		int end = right_y_end;
-
 		// 文字の高さを求める
-		char_height = right_y_end - right_y_start;
+		int char_height = end_points.get("下") - end_points.get("上");
 
 		// 文字の幅を求める
 		int char_width = end_points.get("右") - end_points.get("左");
 
-		// 右の線を抽出する際に探索する左の範囲の決定
+		// 右の線を抽出する際に探索する範囲の左を決定
 		int lft_range = (int)(char_width / 2) + end_points.get("左");
-
-		left_range = lft_range;
 
 
 		// 指定した左の範囲より右側の部分の文字を右から左へ（横に）探索していき、
@@ -119,38 +112,60 @@ class  FeatureRightLinearity implements FeatureEvaluater
 			}
 		}
 
+		// 右上の長さを図り始めるところのy座標を求めるのに使う
+		int top_range = end_points.get("上");
+		int btm_range = (int)(char_height / 2) + end_points.get("上");
+		int rit_range = end_points.get("右");
+
 		// 長さを測る範囲の決定
-		end = 0;
+		int prt_top_y = findPrtTopY(image, lft_range, rit_range, top_range, btm_range);
+		// 右上の範囲に左端の線とするところが見つからなかったら左上半分（右）の範囲で探索する
+		if (prt_top_y == -1) {
+			int new_lft_range = lft_range - (int)char_width / 4;
+			prt_top_y = findPrtTopY(image, new_lft_range, rit_range,
+					top_range, btm_range);
+			lft_range = new_lft_range;
+		}
+		prt_left_range = lft_range;
+
+		int prt_btm_y = -1;
 		for (int y = height-1; y >= 0; y--) {
 			if(right_x[y] != -1) {
-				end = y;
+				prt_btm_y = y;
 				break;
 			}
 		}
 
-		start = findPrtTopY(image, lft_range, end_points.get("右"), end_points.get("上"), end_points.get("下"));
+		// 描画用に切り取った部分の上端と下端を記録
+		prt_top_range = prt_top_y;
+		prt_bottom_range = prt_btm_y;
+
+		// 切り取った部分の高さの決定
+		prt_height = prt_btm_y - prt_top_y;
 
 
-
-		//ギャップのある区間の分割
+		// ギャップのある区間の分割
 		right_y_list = new ArrayList<>();
 
-		//forループの中で使用する一時的な配列を用意
+		// ギャップがあるとみなすのに判断する値
+		int gap_value = (char_width/2) / 20;
+
+		// forループの中で使用する一時的な配列を用意
 		int left_y_tmp[] = new int[2];
-		left_y_tmp[0] = start;
-		for (int i = start; i < end; i++) {
-			//ひとつ後ろのy座標の線とのx座標の差が15より大きかったら
-			//ギャップがあるとみなす
-			if (Math.abs(right_x[i+1] - right_x[i]) > 10) {
+		left_y_tmp[0] = prt_top_y;
+		for (int i = prt_top_y; i < prt_btm_y; i++) {
+			// ひとつ後ろのy座標の線とのx座標の差が4より大きかったら
+			// ギャップがあるとみなす
+			if (Math.abs(right_x[i+1] - right_x[i]) > gap_value) {
 				left_y_tmp[1] = i;
 
-				//とりあえず分けた区間はすべてリストleft_y_listに格納する
+				// とりあえず分けた区間はすべてリストleft_y_listに格納する
 				right_y_list.add(left_y_tmp.clone());
 
 				left_y_tmp[0] = i + 1;
 			}
 		}
-		left_y_tmp[1] = end;
+		left_y_tmp[1] = prt_btm_y;
 		right_y_list.add(left_y_tmp);
 
 		// 分けた左の線の長さをそれぞれ足し合わせていく
@@ -163,10 +178,9 @@ class  FeatureRightLinearity implements FeatureEvaluater
 		}
 
 
-
 		// 文字の高さ / 左側の辺の長さ の比を計算
 		float  right_linearity;
-		right_linearity = char_height / right_length;
+		right_linearity = prt_height / right_length;
 
 
 		return  right_linearity;
@@ -259,7 +273,7 @@ class  FeatureRightLinearity implements FeatureEvaluater
 		// 頂点は、右から一列ずつ上から一番近い黒くなっているピクセル
 		// のy座標を見ていき、y座標が1つ右の黒い点のy座標と比べて大
 		// きくなったときの右の黒い点とする
-		int prt_topX = -1;
+		int prt_top_x = -1;
 		int crnt_y = bottomY; // 調べたy座標(x座標はx)
 		int prev_y = bottomY; // ひとつ前に調べたy座標(x座標はx-1)
 		for (int x = rightX; x > leftX; x--) {
@@ -274,26 +288,28 @@ class  FeatureRightLinearity implements FeatureEvaluater
 			}
 
 			if (crnt_y > prev_y) {
-				prt_topX = x;
+				prt_top_x = x;
 				break;
 			}
 
 			prev_y = crnt_y;
 		}
 
-		int prt_topY = 0;
-		for ( int y=topY; y<bottomY; y++ )
-		{
-			int  color = image.getRGB( prt_topX, y );
-
-			if ( color == 0xff000000 )
+		int prt_top_y = -1;
+		if (prt_top_x != -1) {
+			for ( int y=topY; y<bottomY; y++ )
 			{
-				prt_topY = y;
-				break;
+				int  color = image.getRGB( prt_top_x, y );
+
+				if ( color == 0xff000000 )
+				{
+					prt_top_y = y;
+					break;
+				}
 			}
 		}
 
-		return prt_topY;
+		return prt_top_y;
 	}
 
 	// 最後に行った特徴量計算の結果を描画する
@@ -319,12 +335,12 @@ class  FeatureRightLinearity implements FeatureEvaluater
 		}
 
 		g.setColor( Color.BLUE );
-		int start, end;
+		int prt_top_y, prt_btm_y;
 		for (int i = 0; i < right_y_list.size(); i++) {
-		    start = y_start[i];
-			end = y_end[i];
+		    prt_top_y = y_start[i];
+			prt_btm_y = y_end[i];
 
-			for (int y = start; y < end; y++) {
+			for (int y = prt_top_y; y < prt_btm_y; y++) {
 				y0 = y;
 				y1 = y+1;
 				x0 = right_x[ y0 ];
@@ -336,23 +352,23 @@ class  FeatureRightLinearity implements FeatureEvaluater
 
 		// 高さの線の描画
 		g.setColor(Color.RED);
-		g.drawLine(0, right_y_start, last_image.getWidth(), right_y_start);
-		g.drawLine(0, right_y_end, last_image.getWidth(), right_y_end);
+		g.drawLine(0, prt_top_range, last_image.getWidth(), prt_top_range);
+		g.drawLine(0, prt_bottom_range, last_image.getWidth(), prt_bottom_range);
 
 		// 右の線を抽出する際の左の範囲を表す線を描画
 		g.setColor( Color.GREEN );
-		g.drawLine( ox + left_range, oy, ox + left_range, oy + last_image.getHeight());
-
-
+		g.drawLine( ox + prt_left_range, oy, ox + prt_left_range, oy + last_image.getHeight());
+//		g.drawLine(0, prt_top_range, last_image.getWidth(), prt_top_range);
+//		g.drawLine(0, prt_bottom_range, last_image.getWidth(), prt_bottom_range);
 
 
 		String  message;
 		g.setColor( Color.RED );
-		message = "左辺の長さ: " + right_length;
+		message = "右辺の長さ: " + right_length;
 		g.drawString( message, ox, oy + 16 );
-		message = "文字の高さ: " + char_height;
+		message = "右辺の高さ: " + prt_height;
 		g.drawString( message, ox, oy + 32 );
-		message = "特徴量(文字の高さ / 右辺の長さ): " + char_height / right_length;
+		message = "特徴量(右辺の高さ / 右辺の長さ): " + prt_height / right_length;
 		g.drawString( message, ox, oy + 48 );
 	}
 }
