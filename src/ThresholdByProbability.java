@@ -121,10 +121,10 @@ class  ThresholdByProbability extends ThresholdByAverage
 		new_threshold = crossPoint.get("x" + 0);
 		float calcThreshold = 0;
 		if (cnt > 0) {
-			calcThreshold = threshold - crossPoint.get("x" + 0);
+			calcThreshold = Math.abs(threshold - crossPoint.get("x" + 0));
 			for (int i = 1; i < cnt; i++) {
-				if (threshold - crossPoint.get("x" + i) < calcThreshold){
-					new_threshold = threshold - crossPoint.get("x" + i);
+				if (Math.abs(threshold - crossPoint.get("x" + i)) < calcThreshold){
+					new_threshold = crossPoint.get("x" + i);
 				}
 //				numbers[i] = threshold - crossPoint.get("x" + i);
 			}
