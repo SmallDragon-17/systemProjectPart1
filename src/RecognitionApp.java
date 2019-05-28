@@ -134,8 +134,8 @@ public class RecognitionApp extends JApplet
 	{
 		// 利用可能な特徴量計算モジュールを初期化
 		features = new FeatureEvaluater[ 3 ];
-		features[ 0 ] = new FeatureLeftLinerity();
-		features[ 1 ] = new FeatureWidthRatio();
+		features[ 0 ] = new FeatureRightLinearity();
+		features[ 1 ] = new FeatureWidthRatio2();
 		features[ 2 ] = new FeatureAngleXTwoPoints();
 
 		// 利用可能な閾値決定モジュール（１次元の特徴量）を初期化
